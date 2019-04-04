@@ -2,6 +2,10 @@
 // A simple example showing how to use the triangle geometry
 //------------------------------------------------------------------------------
 
+//Do we want air resistance?
+//Do we want gravity?
+
+
 #include "givr.h"
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -9,11 +13,20 @@
 #include "panel.h"
 #include "turntable_controls.h"
 
+#include "Boid.h"
+
 using namespace glm;
 using namespace givr;
 using namespace givr::camera;
 using namespace givr::geometry;
 using namespace givr::style;
+
+float deltT = 0.01f;
+const vec3 g = vec3{0.0f, 9.8f, 0.0f};
+std::vector<Boid> boids;
+
+void updateBoids();
+
 
 int main(void) {
   namespace p = panel;
@@ -31,6 +44,20 @@ int main(void) {
   auto instancedSphere = createInstancedRenderable(
       Sphere(Centroid(0.0, 1., 0.)),
       Phong(Colour(1., 1., 0.1529), LightPosition(100.f, 100.f, 100.f)));
+
+
+  Boid testBoid = Boid();
+  boids.push_back(testBoid);
+
+  auto p1 = vec3f(boids[0].position.x, boids[0].position.y, boids[0].position.z +0.1f);
+  auto p2= vec3f(boids[0].position.x +0.2f, boids[0].position.y, boids[0].position.z);
+  auto p3 = vec3f(boids[0].position.x, boids[0].position.y, boids[0].position.z -0.1f);
+
+  auto instancedTriangle = createInstancedRenderable(
+      Triangle(Point1(p1), Point2(p2), Point3(p3)),
+      Phong(Colour(1., 1., 0.1529), LightPosition(0.0f, 100.f, 0.0f)));
+
+
 
   std::vector<float> times;
   times.push_back(0.f);
@@ -58,7 +85,7 @@ int main(void) {
     view.projection.updateAspectRatio(window.width(), window.height());
 
     for (auto &t : times) {
-      t += 0.01f;
+      t += deltT;
       t = t < 1.f ? t : 0.f;
 
       float x = p::funcs.evaluateFast(xFunc, t);
@@ -68,13 +95,29 @@ int main(void) {
       mat4f m = translate(mat4f(1.f), vec3f{x, y, 0.0});
       m = scale(m, 15.f * vec3f{p::scale});
 
-      addInstance(instancedSphere, m);
+      //addInstance(instancedSphere, m);
+      addInstance(instancedTriangle, m);
     }
 
-    draw(instancedSphere, view);
+    //draw(instancedSphere, view);
+    draw(instancedTriangle, view);
 
     io::renderDrawData();
 
   });
   exit(EXIT_SUCCESS);
+}
+
+
+
+void updateBoids(){
+    for (int i = 0 ; i < boids.size() ; i++){
+        vec3 a = boids[i].totalForce;
+        a += g;
+
+        boids[i].velocity = boids[i].velocity + (a*deltT);
+        boids[i].position = boids[i].position + (boids[i].velocity*deltT);
+        boids[i].totalForce = vec3(0.0f, 0.0f, 0.0f);
+    }
+
 }
