@@ -2,9 +2,9 @@
 // A simple example showing how to use the triangle geometry
 //------------------------------------------------------------------------------
 
-//Do we want air resistance?
 //Do we want gravity?
-
+//Should I use the graphs?
+//Need boid object interaction?
 
 #include "givr.h"
 #include <glm/gtc/matrix_transform.hpp>
@@ -22,11 +22,22 @@ using namespace givr::geometry;
 using namespace givr::style;
 
 float deltT = 0.01f;
-const vec3 g = vec3{0.0f, 9.8f, 0.0f};
+const vec3 g = vec3{0.0f, -9.8f, 0.0f};
+
+int numberOfBoids = 5;
 std::vector<Boid> boids;
+
+float ra = 3;       //Radius avoid
+float rc = 6;       //Radius cohesion
+float rg = 12;      //Radius gathering
+float rMax = 20;    //Radius of simulation area
 
 void updateBoids();
 
+
+//////////////////////////////////////////////////////////////////
+////////////////////////// Scene Setup ///////////////////////////
+//////////////////////////////////////////////////////////////////
 
 int main(void) {
   namespace p = panel;
@@ -41,17 +52,10 @@ int main(void) {
   auto view = View(TurnTable(), Perspective());
   TurnTableControls controls(window, view.camera);
 
-  auto instancedSphere = createInstancedRenderable(
-      Sphere(Centroid(0.0, 1., 0.)),
-      Phong(Colour(1., 1., 0.1529), LightPosition(100.f, 100.f, 100.f)));
-
-
-  Boid testBoid = Boid();
-  boids.push_back(testBoid);
-
-  auto p1 = vec3f(boids[0].position.x, boids[0].position.y, boids[0].position.z +0.1f);
-  auto p2= vec3f(boids[0].position.x +0.2f, boids[0].position.y, boids[0].position.z);
-  auto p3 = vec3f(boids[0].position.x, boids[0].position.y, boids[0].position.z -0.1f);
+  //Create mesh for boids
+  auto p1 = vec3f(-0.5f, 0.0f,  0.0f);
+  auto p2 = vec3f( 0.0f, 0.0f, -1.0f);
+  auto p3 = vec3f( 0.5f, 0.0f,  0.0f);
 
   auto instancedTriangle = createInstancedRenderable(
       Triangle(Point1(p1), Point2(p2), Point3(p3)),
@@ -59,24 +63,26 @@ int main(void) {
 
 
 
-  std::vector<float> times;
-  times.push_back(0.f);
 
-  window.keyboardCommands() |
-      io::Key(GLFW_KEY_P, [](auto) { p::showPanel = true; });
+  for (int i = 0 ; i < numberOfBoids ; i++){
+      Boid newBoid = Boid();
+      newBoid.position = vec3(i*2.0f, 0.0f, 0.0f);
+      boids.push_back(newBoid);
+      std::cout << "Boid created" << std::endl;
+  }
 
-  auto xFunc = p::funcs.create("x Value", 20);
-  auto yFunc = p::funcs.create("y Value", 20);
 
+
+
+
+  //////////////////////////////////////////////////////////////////
+  ///////////////////////// Rendering loop /////////////////////////
+  //////////////////////////////////////////////////////////////////
+  ///
   window.run([&](float frameTime) {
 
     glfwPollEvents();
     p::menu();
-
-    if (p::addBall) {
-      times.push_back(0.f);
-      p::ballCount = times.size();
-    }
 
     auto color = p::clear_color;
     glClearColor(color.x, color.y, color.z, color.w);
@@ -84,39 +90,56 @@ int main(void) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     view.projection.updateAspectRatio(window.width(), window.height());
 
-    for (auto &t : times) {
-      t += deltT;
-      t = t < 1.f ? t : 0.f;
+    //Physics calculations
+    updateBoids();
 
-      float x = p::funcs.evaluateFast(xFunc, t);
-      x = glm::mix(p::xRange[0], p::xRange[1], x);
-      float y = p::funcs.evaluateFast(yFunc, t);
-      y = glm::mix(p::yRange[0], p::yRange[1], y);
-      mat4f m = translate(mat4f(1.f), vec3f{x, y, 0.0});
-      m = scale(m, 15.f * vec3f{p::scale});
+    for (int i = 0 ; i < numberOfBoids ; i++){
+        auto m = translate(mat4f{1.f}, boids[i].position);
+        addInstance(instancedTriangle, m);
 
-      //addInstance(instancedSphere, m);
-      addInstance(instancedTriangle, m);
+        //Calculate boid-boid forces
+        for (int j = 0 ; j < numberOfBoids ; j++){
+            if (i != j){
+
+
+
+
+
+
+            }
+        }
+
+        //Calculate boid-object forces
+        for (int j = 0 ; j < numberOfBoids ; j++){
+
+        }
+
+        //Calculate boid-limit forces
+        vec3 toCenterVec = vec3(0.0f, 0.0f, 0.0f) - boids[i].position; //Vector from boid to center
+        if(length(toCenterVec) > rMax)
+            boids[i].totalForce += toCenterVec;
     }
 
-    //draw(instancedSphere, view);
     draw(instancedTriangle, view);
 
     io::renderDrawData();
-
   });
   exit(EXIT_SUCCESS);
 }
 
 
+//////////////////////////////////////////////////////////////////
+///////////////////////// Physics stuff //////////////////////////
+//////////////////////////////////////////////////////////////////
 
 void updateBoids(){
     for (int i = 0 ; i < boids.size() ; i++){
         vec3 a = boids[i].totalForce;
-        a += g;
+        //a += g;
 
         boids[i].velocity = boids[i].velocity + (a*deltT);
         boids[i].position = boids[i].position + (boids[i].velocity*deltT);
+        //std::cout << "Position updated to (" << boids[i].position.x << "," <<  boids[i].position.y << "," << boids[i].position.z << ")" << std::endl;
         boids[i].totalForce = vec3(0.0f, 0.0f, 0.0f);
     }
 
