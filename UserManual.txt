@@ -1,0 +1,27 @@
+You can change the number of geese and the ranges they interact with each 
+other using the "parameters.txt" file inside the "models" folder.
+
+For each line enter the desired number directly after the colon
+    - numberOfBoids changes the number of geese that spawn.
+        (integers only, between 0 and 400)
+
+    - ra sets the range of avoidance, the range geese will try to move away from each other
+        (anything greater than 0)
+
+    - rc sets the range of cohesion, the range geese will alignment with each other
+        (anything greater than ra)
+
+    - rg sets the range of gathering, the range geese will see others and try to approach
+        (anything greater than rc)
+
+
+
+Additionally, a lure can be spawned to lead the geese to a specific area.
+The controlls for the lure respectively are:
+    - M     : Turn lure On/Off
+    - ./,   : Increase/decrease lure strength
+    - J/L   : Move lure left/right
+    - I/K   : Move lure forward/backwards
+    - O/U   : Move lure up/down
+
+(refrences to directions are based on initial camera position)

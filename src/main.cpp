@@ -37,6 +37,9 @@ std::vector<Boid> boids;
 vec3 sphereOrigin = vec3(20.0f, 0.0f, 0.0f);
 float sphereRadius = 4;
 
+vec3 lure = vec3(0.0f, 0.0f, 0.0f);
+bool lureActive = true;
+
 float ra = 0;       //Radius avoid
 float rc = 0;      //Radius cohesion
 float rg = 0;      //Radius gathering
@@ -44,6 +47,10 @@ float rMax = 20;    //Radius of simulation area
 
 float minVelocity = 10;
 float maxVelocity = 20;
+
+
+float lureStrength = 100.0f;
+
 
 void updateBoids();
 
@@ -68,40 +75,63 @@ int main(void) {
   TurnTableControls controls(window, view.camera);
 
 
-  /*
+
   //Setup keybindings
   window.keyboardCommands() |
-              io::Key(GLFW_KEY_5, [&](auto const &event) {
+          //Activate lure
+              io::Key(GLFW_KEY_M, [&](auto const &event) {
           if (event.action == GLFW_PRESS)
-              std::cout << "Spawning lure" << std::endl;
-              ;
+              if(lureActive)
+                  lureActive = false;
+              else
+                  lureActive = true;
+
+              //std::cout << "Lure is now: " << lureActive << std::endl;
+
       })
-              | io::Key(GLFW_KEY_4, [&](auto const &event) {
-          if (event.action == GLFW_PRESS)
-              ;
+          //Move lure
+              | io::Key(GLFW_KEY_J, [&](auto const &event) {
+          if (event.action == GLFW_REPEAT)
+              lure += vec3(-0.2f, 0.0f, 0.0f);
+              //std::cout << "Lure X now: " << lure.x << std::endl;
       })
-              | io::Key(GLFW_KEY_6, [&](auto const &event) {
-          if (event.action == GLFW_PRESS)
-              ;
+              | io::Key(GLFW_KEY_L, [&](auto const &event) {
+          if (event.action == GLFW_REPEAT)
+              lure += vec3(0.2f, 0.0f, 0.0f);
       })
-              | io::Key(GLFW_KEY_8, [&](auto const &event) {
-          if (event.action == GLFW_PRESS)
-              ;
+              | io::Key(GLFW_KEY_I, [&](auto const &event) {
+          if (event.action == GLFW_REPEAT)
+              lure += vec3(0.0f, 0.0f, -0.2f);
       })
-              | io::Key(GLFW_KEY_2, [&](auto const &event) {
-          if (event.action == GLFW_PRESS)
-              ;
+              | io::Key(GLFW_KEY_K, [&](auto const &event) {
+          if (event.action == GLFW_REPEAT)
+              lure += vec3(0.0f, 0.0f, 0.2f);
       })
-              | io::Key(GLFW_KEY_7, [&](auto const &event) {
-          if (event.action == GLFW_PRESS)
-              ;
+              | io::Key(GLFW_KEY_U, [&](auto const &event) {
+          if (event.action == GLFW_REPEAT)
+              lure += vec3(0.0f, -0.2f, 0.0f);
       })
-              | io::Key(GLFW_KEY_9, [&](auto const &event) {
-          if (event.action == GLFW_PRESS)
-             ;
+              | io::Key(GLFW_KEY_O, [&](auto const &event) {
+          if (event.action == GLFW_REPEAT)
+             lure += vec3(0.0f, 0.2f, 0.0f);
+      })
+
+          //Change lure strength
+              | io::Key(GLFW_KEY_PERIOD, [&](auto const &event) {
+          if (event.action == GLFW_REPEAT){
+             lureStrength += 1;
+             std::cout << "lureStrength: " << lureStrength << std::endl;
+          }
+      })
+              | io::Key(GLFW_KEY_COMMA, [&](auto const &event) {
+          if (event.action == GLFW_REPEAT){
+             if(lureStrength > 0)
+                lureStrength -= 1;
+             std::cout << "lureStrength: " << lureStrength << std::endl;
+          }
       });
 
-*/
+
 
   //Load parameters
   std::ifstream parametersFile;
@@ -148,6 +178,13 @@ int main(void) {
 
   auto instancedSpheres = createInstancedRenderable(
               Sphere(Centroid(sphereOrigin.x, sphereOrigin.y, sphereOrigin.z), Radius(sphereRadius)), phongStyle);
+
+  auto phongStyleRed = Phong(
+      LightPosition(0.0, 0.0, 100.0),
+      Colour(1.0, 0.1529, 0.1529)
+  );
+  auto instancedSpheresRed = createInstancedRenderable(
+              Sphere(Centroid(0.0f, 0.0f, 0.f), Radius(0.5f)), phongStyleRed);
 
 
   for (int i = 0 ; i < numberOfBoids ; i++){
@@ -258,9 +295,12 @@ int main(void) {
         }
 
         //Lure force
-        //vec3 lurePosition = vec3(0.0f, 0.0f, 0.0f);
-        //float lureStrength = 20.0f;
-        //boids[i].totalForce += normalize(lurePosition - boids[i].position) * vec3(lureStrength, lureStrength, lureStrength);
+        if(lureActive){
+            boids[i].totalForce += normalize(lure - boids[i].position) * vec3(lureStrength, lureStrength, lureStrength);
+
+            addInstance(instancedSpheresRed, translate(mat4f{1.f}, lure));
+            draw(instancedSpheresRed, view);
+        }
 
 
         //ALL FORCES HAVE BEEN ADDED BY THIS LINE
