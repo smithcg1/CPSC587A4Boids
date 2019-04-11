@@ -1,11 +1,12 @@
-// Should forces be smoothed out?
-// How to split around sphere with using force applied along normal rather than tangent vector
-// "initial states and parameters of the simulations should be read from a text data file, rather than hard-coded"?
+// Input file not being added to build
+
+//TO-DO
+// Bonus 1: Increase number of boids using acceleration
+// Bonus 2: Provide the ability to guide the flocks
+// Add randomness to force
+// Add cylinder
 // "Write a short manual explaining the operation of your program from a user’s perspective"?
 
-
-//Bonus 1: Increase number of boids in real time
-//Bonus 2: Provide the ability to guide the flocks
 
 #include "givr.h"
 #include <glm/gtc/matrix_transform.hpp>
@@ -14,6 +15,10 @@
 #include "io.h"
 #include "panel.h"
 #include "turntable_controls.h"
+
+#include <fstream>
+#include <iostream>
+#include <string>
 
 #include "Boid.h"
 
@@ -26,15 +31,15 @@ using namespace givr::style;
 float deltT = 0.01f;
 const vec3 g = vec3{0.0f, -9.8f, 0.0f};
 
-int numberOfBoids = 200;
+int numberOfBoids = 1;
 std::vector<Boid> boids;
 
 vec3 sphereOrigin = vec3(20.0f, 0.0f, 0.0f);
 float sphereRadius = 4;
 
-float ra = 3;       //Radius avoid
-float rc = 10;       //Radius cohesion
-float rg = 20;      //Radius gathering
+float ra = 0;       //Radius avoid
+float rc = 0;      //Radius cohesion
+float rg = 0;      //Radius gathering
 float rMax = 20;    //Radius of simulation area
 
 float minVelocity = 10;
@@ -42,15 +47,15 @@ float maxVelocity = 20;
 
 void updateBoids();
 
-
 //////////////////////////////////////////////////////////////////
 ////////////////////////// Scene Setup ///////////////////////////
 //////////////////////////////////////////////////////////////////
 
 int main(void) {
-    //Window setup
-  srand(time(NULL));
+  //Window setup
   namespace p = panel;
+
+  srand(time(NULL));
 
   io::GLFWContext windows;
   auto window =
@@ -61,6 +66,71 @@ int main(void) {
 
   auto view = View(TurnTable(), Perspective());
   TurnTableControls controls(window, view.camera);
+
+
+  /*
+  //Setup keybindings
+  window.keyboardCommands() |
+              io::Key(GLFW_KEY_5, [&](auto const &event) {
+          if (event.action == GLFW_PRESS)
+              std::cout << "Spawning lure" << std::endl;
+              ;
+      })
+              | io::Key(GLFW_KEY_4, [&](auto const &event) {
+          if (event.action == GLFW_PRESS)
+              ;
+      })
+              | io::Key(GLFW_KEY_6, [&](auto const &event) {
+          if (event.action == GLFW_PRESS)
+              ;
+      })
+              | io::Key(GLFW_KEY_8, [&](auto const &event) {
+          if (event.action == GLFW_PRESS)
+              ;
+      })
+              | io::Key(GLFW_KEY_2, [&](auto const &event) {
+          if (event.action == GLFW_PRESS)
+              ;
+      })
+              | io::Key(GLFW_KEY_7, [&](auto const &event) {
+          if (event.action == GLFW_PRESS)
+              ;
+      })
+              | io::Key(GLFW_KEY_9, [&](auto const &event) {
+          if (event.action == GLFW_PRESS)
+             ;
+      });
+
+*/
+
+  //Load parameters
+  std::ifstream parametersFile;
+  parametersFile.open("./models/parameters.txt");
+
+  std::string data;
+  getline(parametersFile, data);
+  numberOfBoids = std::stoi(data.substr(14));
+
+  getline(parametersFile, data);
+  ra = std::stof(data.substr(3));
+
+  getline(parametersFile, data);
+  rc = std::stof(data.substr(3));
+
+  getline(parametersFile, data);
+  rg = std::stof(data.substr(3));
+  std::cout << "Reading file" << std::endl;
+  std::cout << data.substr(4) << std::endl;
+
+  parametersFile.close();
+
+
+
+
+
+
+
+
 
 
 
@@ -225,6 +295,10 @@ int main(void) {
 //////////////////////////////////////////////////////////////////
 void updateBoids(){
     for (int i = 0 ; i < boids.size() ; i++){
+        //Add small random variation to force (-1.05 to 1.05)
+        float test = (((rand() % 200)-100)/20)+1;
+        boids[i].totalForce = boids[i].totalForce * vec3(test,test,test);
+
         vec3 a = boids[i].totalForce;
         boids[i].velocity = boids[i].velocity + (a*deltT);
 
