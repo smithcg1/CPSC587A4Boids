@@ -14,6 +14,9 @@ For each line enter the desired number directly after the colon
     - rg sets the range of gathering, the range geese will see others and try to approach
         (anything greater than rc)
 
+    - rMax sets the range at which boids will start to turn around
+        (anything greater than rg)
+
 
 
 Additionally, a lure can be spawned to lead the geese to a specific area.

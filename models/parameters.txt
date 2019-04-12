@@ -2,3 +2,4 @@ numberOfBoids:400
 ra:2
 rc:4
 rg:5
+rMax:20

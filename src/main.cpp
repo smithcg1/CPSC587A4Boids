@@ -1,12 +1,14 @@
-// Input file not being added to build
+// Is randomness force ok? (it stutters)
+// Do I need a cylinder?
 
 //TO-DO
 // Bonus 1: Increase number of boids using acceleration
-// Bonus 2: Provide the ability to guide the flocks
-// Add randomness to force
-// Add cylinder
-// "Write a short manual explaining the operation of your program from a user’s perspective"?
 
+// Build data structure
+// Put boids in data structure
+// Restrict boid search to adjacent
+// Bi-directional force update
+// Timestamp quadrents
 
 #include "givr.h"
 #include <glm/gtc/matrix_transform.hpp>
@@ -38,18 +40,20 @@ vec3 sphereOrigin = vec3(20.0f, 0.0f, 0.0f);
 float sphereRadius = 4;
 
 vec3 lure = vec3(0.0f, 0.0f, 0.0f);
-bool lureActive = true;
+bool lureActive = false;
 
 float ra = 0;       //Radius avoid
 float rc = 0;      //Radius cohesion
 float rg = 0;      //Radius gathering
-float rMax = 20;    //Radius of simulation area
+float rMax = 1;    //Radius of simulation area
 
 float minVelocity = 10;
 float maxVelocity = 20;
 
 
-float lureStrength = 100.0f;
+
+
+float lureStrength = 60.0f;
 
 
 void updateBoids();
@@ -149,18 +153,13 @@ int main(void) {
 
   getline(parametersFile, data);
   rg = std::stof(data.substr(3));
-  std::cout << "Reading file" << std::endl;
-  std::cout << data.substr(4) << std::endl;
+
+  getline(parametersFile, data);
+  rMax = std::stof(data.substr(5));
 
   parametersFile.close();
 
-
-
-
-
-
-
-
+  //wc = rmax/rg  //
 
 
 
