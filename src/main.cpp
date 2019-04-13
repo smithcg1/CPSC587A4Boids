@@ -229,7 +229,7 @@ int main(void) {
 
     for (int i = 0 ; i < numberOfBoids ; i++){
         //Calculate boid-boid forces
-        for (int j = 0 ; j < numberOfBoids ; j++){
+        for (int j = (i+1) ; j < numberOfBoids ; j++){
             if (i != j){
                 vec3 toBoidVec = boids[j].position - boids[i].position;
                 float dist = length(toBoidVec);
@@ -237,16 +237,19 @@ int main(void) {
                 if(dist < ra){
                     float c = pow(ra,2)/pow(dist,2);
                     boids[i].totalForce -= normalize(toBoidVec) * vec3(c, c, c);
+                    boids[j].totalForce += normalize(toBoidVec) * vec3(c, c, c);
                 }
 
                 else if(dist < rc){
                     vec3 aveVec = (boids[i].velocity+boids[j].velocity)/vec3(2.0f, 2.0f, 2.0f);
                     boids[i].totalForce += aveVec;
+                    boids[j].totalForce += aveVec;
                 }
 
                 else if(dist < rg){
                     float c = 0.5f;
                     boids[i].totalForce += normalize(toBoidVec) * vec3(c, c, c);
+                    boids[j].totalForce -= normalize(toBoidVec) * vec3(c, c, c);
                 }
             }
         }

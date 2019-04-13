@@ -3,7 +3,7 @@ other using the "parameters.txt" file inside the "models" folder.
 
 For each line enter the desired number directly after the colon
     - numberOfBoids changes the number of geese that spawn.
-        (integers only, between 0 and 400)
+        (integers only, between 0 and 500)
 
     - ra sets the range of avoidance, the range geese will try to move away from each other
         (anything greater than 0)
@@ -28,3 +28,8 @@ The controlls for the lure respectively are:
     - O/U   : Move lure up/down
 
 (refrences to directions are based on initial camera position)
+
+
+
+
+The system has a minor computational acceleration applied compared to n^2 that should have shifted boid calculations from n^2 to n*lgn but only resulted in an increase in number of boids that animate smoothly from 400 to 500 (%25 increase). Attempts to implement the full acceleration using a grid system were unsuccessfull.
