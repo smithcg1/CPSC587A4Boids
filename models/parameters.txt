@@ -1,5 +1,5 @@
 numberOfBoids:400
 ra:2
-rc:4
-rg:5
+rc:5
+rg:6
 rMax:20

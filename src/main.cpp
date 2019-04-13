@@ -159,10 +159,6 @@ int main(void) {
 
   parametersFile.close();
 
-  //wc = rmax/rg  //
-
-
-
 
   //Create meshs
   auto phongStyle = Phong(
@@ -335,8 +331,8 @@ int main(void) {
 void updateBoids(){
     for (int i = 0 ; i < boids.size() ; i++){
         //Add small random variation to force (-1.05 to 1.05)
-        float test = (((rand() % 200)-100)/20)+1;
-        boids[i].totalForce = boids[i].totalForce * vec3(test,test,test);
+        float randomeness = (((rand() % 200)-100)/20)+1;
+        boids[i].totalForce = boids[i].totalForce * vec3(randomeness,randomeness,randomeness);
 
         vec3 a = boids[i].totalForce;
         boids[i].velocity = boids[i].velocity + (a*deltT);
