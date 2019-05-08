@@ -12,6 +12,9 @@ public:
     vec3 position = vec3(0.0f, 0.0f, 0.0f);
     vec3 velocity = vec3(0.0f, 0.0f, 0.0f);
     vec3 totalForce = vec3(0.0f, 0.0f, 0.0f);
+
+    int gridIndex;
+    int id;
 };
 
 #endif // BOID_H

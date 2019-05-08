@@ -4,11 +4,9 @@
 //TO-DO
 // Bonus 1: Increase number of boids using acceleration
 
-// Build data structure
-// Put boids in data structure
-// Restrict boid search to adjacent
-// Bi-directional force update
-// Timestamp quadrents
+// Restrict boid search to adjacent         0.5 h
+// Bi-directional force update              0.5 h
+// Update boid location in grid             1.0 h   (partly done)
 
 #include "givr.h"
 #include <glm/gtc/matrix_transform.hpp>
@@ -23,6 +21,7 @@
 #include <string>
 
 #include "Boid.h"
+#include "Cell.h"
 
 using namespace glm;
 using namespace givr;
@@ -35,6 +34,13 @@ const vec3 g = vec3{0.0f, -9.8f, 0.0f};
 
 int numberOfBoids = 1;
 std::vector<Boid> boids;
+std::vector<Cell> grid;
+int xSize;
+int ySize;
+int zSize;
+unsigned long int globalTimestamp;
+
+
 
 vec3 sphereOrigin = vec3(20.0f, 0.0f, 0.0f);
 float sphereRadius = 4;
@@ -57,6 +63,7 @@ float lureStrength = 60.0f;
 
 
 void updateBoids();
+void boidCellInteraction(int boidIndex, int cellIndex);
 
 //////////////////////////////////////////////////////////////////
 ////////////////////////// Scene Setup ///////////////////////////
@@ -159,6 +166,20 @@ int main(void) {
 
   parametersFile.close();
 
+  // Number of cells along x,y,z
+  xSize = ceil((rMax+4)/rg)+4;
+  ySize = xSize;
+  zSize = xSize;
+
+  // Initialize cells
+  globalTimestamp = 0;
+
+  for(int i = 0 ; i < (xSize*ySize*zSize) ; i++){
+    Cell cell = Cell();
+    grid.push_back(cell);
+  }
+
+
 
   //Create meshs
   auto phongStyle = Phong(
@@ -186,12 +207,23 @@ int main(void) {
       Boid newBoid = Boid();
 
       //Randomize start positions
-      float startBound = pow((pow(rMax,2)/2),0.5);
+      float startBound = pow((pow(rMax,2)/2),0.5); //A^2 + B^2 = C^2  (consider removing 2*...
+      //float startBound = rMax;
       float xStart = (rand() % (2*(int)startBound)) - startBound;
       float yStart = (rand() % (2*(int)startBound)) - startBound;
       float zStart = (rand() % (2*(int)startBound)) - startBound;
 
       newBoid.position = vec3(xStart, yStart, zStart);
+      newBoid.id = i;
+
+      //Correct this later for the fact that grid must be slightly larger than rMax. Replace rMax with xSize*rg
+      int insertIndex = floor(((xStart+(xSize*rg))/2)/rg)+
+                        floor(((zStart+(zSize*rg))/2)/rg)*xSize +
+                        floor(((yStart+(ySize*rg))/2)/rg)*xSize*zSize;
+      newBoid.gridIndex = insertIndex;
+      //std::cout << "Index: " << insertIndex << std::endl;
+
+      grid[insertIndex].bucket.push_back(newBoid.id);
 
       //Randomize start direction
       float xVel = (rand() % (2*(int)startBound)) - startBound;
@@ -203,8 +235,8 @@ int main(void) {
 
       boids.push_back(newBoid);
       //std::cout << "Boid created at x = " << xStart << std::endl;
-  }
 
+  }
 
 
 
@@ -214,7 +246,6 @@ int main(void) {
   //////////////////////////////////////////////////////////////////
   ///
   window.run([&](float frameTime) {
-
     glfwPollEvents();
     p::menu();
 
@@ -227,9 +258,85 @@ int main(void) {
     //Physics calculations
     updateBoids();
 
+    globalTimestamp++;  //Ingrement timestamp
+
+    //For each cell
+    for (int i = 0 ; i < grid.size() ; i++){
+        Cell cell = grid[i];
+
+        //For each boid in this cell
+        for( int j = 0 ; j < cell.bucket.size() ; j++){
+            //Check 13
+            boidCellInteraction(j, i);
+
+            if(i%xSize != 0){                               //Not at left
+                //Check 12
+                boidCellInteraction(j, i-1);
+
+                if(i >= xSize*zSize){                       //Not at bottom
+                    //Check 3
+                    boidCellInteraction(j, i-xSize*zSize-1);
+                }
+                if(i < ((xSize*ySize*zSize)-(xSize*zSize))){ //Not at top
+                    //Check 21
+                    boidCellInteraction(j, i+xSize*zSize-1);
+                }
+            }
+
+
+            if ((i%(xSize*zSize)) >= xSize){                 //Not at front
+                //Check 10
+                boidCellInteraction(j, i-xSize);
+
+                if(i >= xSize*zSize){                       //Not at bottom
+                    //Check 1
+                    boidCellInteraction(j, i-(xSize*zSize)-xSize);
+
+                    if(i%xSize != 0){                       //Not at left
+                        //Check 0
+                        boidCellInteraction(j, i-(xSize*zSize)-xSize-1);
+                    }
+                    if(i%xSize != (xSize-1)){               //Not at right
+                        //Check 2
+                        boidCellInteraction(j, i-(xSize*zSize)-xSize+1);
+                    }
+                }
+                if(i < ((xSize*ySize*zSize)-(xSize*zSize))){ //Not at top
+                    //Check 19
+                    boidCellInteraction(j, i+(xSize*zSize)-xSize);
+
+                    if(i%xSize != 0){                       //Not at left
+                       //Check 18
+                        boidCellInteraction(j, i+(xSize*zSize)-xSize-1);
+                    }
+                    if(i%xSize != (xSize-1)){               //Not at right
+                       //Check 20
+                        boidCellInteraction(j, i+(xSize*zSize)-xSize+1);
+                    }
+                }
+
+                if(i%xSize != 0){                       //Not at left
+                    //Check 9
+                    boidCellInteraction(j, i-xSize-1);
+                }
+                if(i%xSize != (xSize-1)){               //Not at right
+                    //Check 11
+                    boidCellInteraction(j, i-xSize+1);
+                }
+            }
+
+            if(i < ((xSize*ySize*zSize)-(xSize*zSize))){ //Not at top
+                //Check 22
+                boidCellInteraction(j, i+xSize*zSize);
+            }
+        }
+    }
+
     for (int i = 0 ; i < numberOfBoids ; i++){
+
+/*
         //Calculate boid-boid forces
-        for (int j = (i+1) ; j < numberOfBoids ; j++){
+        for (int j = 0 ; j < numberOfBoids ; j++){
             if (i != j){
                 vec3 toBoidVec = boids[j].position - boids[i].position;
                 float dist = length(toBoidVec);
@@ -237,22 +344,19 @@ int main(void) {
                 if(dist < ra){
                     float c = pow(ra,2)/pow(dist,2);
                     boids[i].totalForce -= normalize(toBoidVec) * vec3(c, c, c);
-                    boids[j].totalForce += normalize(toBoidVec) * vec3(c, c, c);
                 }
 
                 else if(dist < rc){
                     vec3 aveVec = (boids[i].velocity+boids[j].velocity)/vec3(2.0f, 2.0f, 2.0f);
                     boids[i].totalForce += aveVec;
-                    boids[j].totalForce += aveVec;
                 }
 
                 else if(dist < rg){
                     float c = 0.5f;
                     boids[i].totalForce += normalize(toBoidVec) * vec3(c, c, c);
-                    boids[j].totalForce -= normalize(toBoidVec) * vec3(c, c, c);
                 }
             }
-        }
+        }*/
 
         //Calculate boid-object forces
         for (int j = 0 ; j < numberOfBoids ; j++){
@@ -328,14 +432,53 @@ int main(void) {
 }
 
 
+
+
+
+
+void boidCellInteraction(int boidIndex, int cellIndex){
+    //For each
+    int i = boidIndex;
+    for(int k = 0 ; k < grid[cellIndex].bucket.size() ; k++){
+        int j = grid[cellIndex].bucket[k];
+
+        if (i != j){
+            vec3 toBoidVec = boids[j].position - boids[i].position;
+            float dist = length(toBoidVec);
+
+            if(dist < ra){
+                float c = pow(ra,2)/pow(dist,2);
+                boids[i].totalForce += normalize(toBoidVec) * vec3(c, c, c);
+                boids[j].totalForce -= normalize(toBoidVec) * vec3(c, c, c);
+            }
+
+            else if(dist < rc){
+                float c = 2;
+                vec3 aveVec = ((boids[i].velocity+boids[j].velocity)/vec3(2.0f, 2.0f, 2.0f)) * vec3(c,c,c);
+                boids[i].totalForce -= aveVec;
+                boids[j].totalForce += aveVec;
+            }
+
+            else if(dist < rg){
+                float c = 2.0f;
+                boids[i].totalForce -= normalize(toBoidVec) * vec3(c, c, c);
+                boids[j].totalForce += normalize(toBoidVec) * vec3(c, c, c);
+            }
+        }
+    }
+}
+
+
+
+
 //////////////////////////////////////////////////////////////////
 ///////////////////////// Physics stuff //////////////////////////
 //////////////////////////////////////////////////////////////////
 void updateBoids(){
     for (int i = 0 ; i < boids.size() ; i++){
         //Add small random variation to force (-1.05 to 1.05)
-        float randomeness = (((rand() % 200)-100)/20)+1;
-        boids[i].totalForce = boids[i].totalForce * vec3(randomeness,randomeness,randomeness);
+        float test = (((rand() % 200)-100)/20)+1;
+        //boids[i].totalForce = boids[i].totalForce * vec3(test,test,test);
 
         vec3 a = boids[i].totalForce;
         boids[i].velocity = boids[i].velocity + (a*deltT);
@@ -351,6 +494,22 @@ void updateBoids(){
         boids[i].position = boids[i].position + (boids[i].velocity*deltT);
         //std::cout << "Position updated to (" << boids[i].position.x << "," <<  boids[i].position.y << "," << boids[i].position.z << ")" << std::endl;
         boids[i].totalForce = vec3(0.0f, 0.0f, 0.0f);
+
+        //Update in grid if needed
+        int currentGridIndex = floor(((boids[i].position.x+(xSize*rg))/2)/rg)+
+                            floor(((boids[i].position.z+(zSize*rg))/2)/rg)*xSize +
+                            floor(((boids[i].position.y+(ySize*rg))/2)/rg)*xSize*zSize;
+
+        int sizeOfShelf = xSize*xSize;
+        int oldGridIndex = boids[i].gridIndex;
+        if(currentGridIndex != boids[i].gridIndex){
+            std::vector<int>::iterator it = std::find(grid[boids[i].gridIndex].bucket.begin(), grid[boids[i].gridIndex].bucket.end(), boids[i].id);
+            int oldIndex = std::distance(grid[boids[i].gridIndex].bucket.begin(), it);
+            grid[boids[i].gridIndex].bucket.erase(grid[boids[i].gridIndex].bucket.begin()+oldIndex);
+            boids[i].gridIndex = currentGridIndex;
+            grid[currentGridIndex].bucket.push_back(boids[i].id);
+        }
+
     }
 
 }
